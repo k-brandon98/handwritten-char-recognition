@@ -2,11 +2,12 @@ import os
 import torch
 import torch.nn as nn
 import torch.optim as optim
-from torch.utils.data import DataLoader, random_split
-from torchvision import datasets, transforms
 
 from model_baseline import BaselineLogisticRegression
 # from model_baseline import BaselineMLP
+
+from dataset import get_dataloaders
+
 
 def train_one_epoch(model, loader, criterion, optimizer, device):
     model.train()
@@ -63,56 +64,38 @@ def main():
     batch_size = 64
     learning_rate = 1e-3
     num_epochs = 5
-    val_split = 0.1
-    model_save_path = "models/baseline_emnist.pth"
+    image_size = 28
+    data_dir = "data"
+    model_save_path = "models/baseline_mnist.pth"
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"Using device: {device}")
 
     os.makedirs("models", exist_ok=True)
-    os.makedirs("data", exist_ok=True)
+    os.makedirs(data_dir, exist_ok=True)
 
     # -----------------------------
-    # Minimal preprocessing
+    # Load dataloaders from external file
     # -----------------------------
-    transform = transforms.Compose([
-        transforms.ToTensor(),
-        # normalize to roughly centered range
-        transforms.Normalize((0.1307,), (0.3081,))
-    ])
-
-    # -----------------------------
-    # Load dataset
-    # -----------------------------
-    full_train_dataset = datasets.EMNIST(
-      root="data",
-      split="digits",   # or "letters", "balanced", "byclass"
-      train=True,
-      download=True,
-      transform=transform
+    train_loader, val_loader, test_loader = get_dataloaders(
+        data_dir=data_dir,
+        batch_size=batch_size,
+        image_size=image_size
     )
-
-    test_dataset = datasets.EMNIST(
-        root="data",
-        split="digits",
-        train=False,
-        download=True,
-        transform=transform
-    )
-
-    train_size = int((1 - val_split) * len(full_train_dataset))
-    val_size = len(full_train_dataset) - train_size
-    train_dataset, val_dataset = random_split(full_train_dataset, [train_size, val_size])
-
-    train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
-    val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False)
-    test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
 
     # -----------------------------
     # Model, loss, optimizer
     # -----------------------------
-    model = BaselineLogisticRegression(input_dim=28*28, num_classes=26).to(device)
-    # model = BaselineMLP(input_dim=28*28, hidden_dim=128, num_classes=10).to(device)
+    model = BaselineLogisticRegression(
+        input_dim=image_size * image_size,
+        num_classes=10
+    ).to(device)
+
+    # model = BaselineMLP(
+    #     input_dim=image_size * image_size,
+    #     hidden_dim=128,
+    #     num_classes=10
+    # ).to(device)
 
     criterion = nn.CrossEntropyLoss()
     optimizer = optim.Adam(model.parameters(), lr=learning_rate)
@@ -123,8 +106,12 @@ def main():
     best_val_acc = 0.0
 
     for epoch in range(num_epochs):
-        train_loss, train_acc = train_one_epoch(model, train_loader, criterion, optimizer, device)
-        val_loss, val_acc = evaluate(model, val_loader, criterion, device)
+        train_loss, train_acc = train_one_epoch(
+            model, train_loader, criterion, optimizer, device
+        )
+        val_loss, val_acc = evaluate(
+            model, val_loader, criterion, device
+        )
 
         print(
             f"Epoch [{epoch+1}/{num_epochs}] "
@@ -132,7 +119,6 @@ def main():
             f"Val Loss: {val_loss:.4f}, Val Acc: {val_acc:.4f}"
         )
 
-        # Save best model based on validation accuracy
         if val_acc > best_val_acc:
             best_val_acc = val_acc
             torch.save(model.state_dict(), model_save_path)

@@ -5,3 +5,4 @@ numpy
 jupyter
 scikit-learn
 pillow
+seaborn

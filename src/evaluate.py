@@ -1,24 +1,34 @@
 import os
+import argparse
 import matplotlib.pyplot as plt
 import seaborn as sns
 import torch
 
 from dataset import get_dataloaders
 from model_baseline import BaselineLogisticRegression
+from model_cnn import CharacterCNN
 from sklearn.metrics import confusion_matrix
 
-# Load the model
-def load_model(model_path, device, image_size=28, num_classes=10):
-    model = BaselineLogisticRegression(
-        input_dim=image_size * image_size,
-        num_classes=num_classes
-    ).to(device)
 
+def load_model(model_type, model_path, device, image_size=28, num_classes=10):
+    if model_type == "baseline":
+        model = BaselineLogisticRegression(
+            input_dim=image_size * image_size,
+            num_classes=num_classes
+        )
+    elif model_type == "cnn":
+        model = CharacterCNN(
+            num_classes=num_classes
+        )
+    else:
+        raise ValueError("model_type must be 'baseline' or 'cnn'")
+
+    model = model.to(device)
     model.load_state_dict(torch.load(model_path, map_location=device))
     model.eval()
     return model
 
-# Get predictions and true labels from the dataloader
+
 def get_predictions(model, loader, device):
     all_preds = []
     all_labels = []
@@ -48,33 +58,42 @@ def get_predictions(model, loader, device):
 
     return all_preds, all_labels, misclassified
 
-# Compute accuracy
+
 def compute_accuracy(preds, labels):
     correct = sum(int(p == y) for p, y in zip(preds, labels))
     return correct / len(labels)
 
-# Plot confusion matrix
-def plot_confusion_matrix(labels, preds, save_path="outputs/confusion_matrix.png"):
+
+def plot_confusion_matrix(labels, preds, model_type, save_path=None):
     os.makedirs("outputs", exist_ok=True)
+
+    if save_path is None:
+        save_path = f"outputs/{model_type}_confusion_matrix.png"
+
     cm = confusion_matrix(labels, preds)
 
     plt.figure(figsize=(8, 6))
     sns.heatmap(cm, annot=True, fmt="d", cmap="Blues")
     plt.xlabel("Predicted label")
     plt.ylabel("True label")
-    plt.title("Baseline Logistic Regression Confusion Matrix")
+    plt.title(f"{model_type.upper()} Confusion Matrix")
     plt.tight_layout()
     plt.savefig(save_path)
     plt.close()
 
     print(f"Saved confusion matrix to {save_path}")
 
-def save_misclassified_examples(misclassified, save_path="outputs/misclassified_examples.png", max_examples=9):
+
+def save_misclassified_examples(misclassified, model_type, save_path=None, max_examples=9):
     if not misclassified:
         print("No misclassified examples found.")
         return
 
     os.makedirs("outputs", exist_ok=True)
+
+    if save_path is None:
+        save_path = f"outputs/{model_type}_misclassified_examples.png"
+
     examples = misclassified[:max_examples]
 
     cols = 3
@@ -93,20 +112,43 @@ def save_misclassified_examples(misclassified, save_path="outputs/misclassified_
 
     print(f"Saved misclassified examples to {save_path}")
 
-# Get misclassified examples
+
 def get_misclassified(preds, labels):
     mistakes = [(i, p, l) for i, (p, l) in enumerate(zip(preds, labels)) if p != l]
-    return mistakes[:10]  # first 10
+    return mistakes[:10]
 
-# main evaluation function
+
 def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--model",
+        type=str,
+        default="cnn",
+        choices=["baseline", "cnn"]
+    )
+    parser.add_argument(
+        "--model_path",
+        type=str,
+        default=None
+    )
+    args = parser.parse_args()
+
+    model_type = args.model
+
     batch_size = 64
     image_size = 28
+    num_classes = 10
     data_dir = "data"
-    model_path = "models/baseline_mnist.pth"
+
+    if args.model_path is not None:
+        model_path = args.model_path
+    else:
+        model_path = f"models/{model_type}_model.pth"
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"Using device: {device}")
+    print(f"Evaluating model: {model_type}")
+    print(f"Loading weights from: {model_path}")
 
     _, _, test_loader = get_dataloaders(
         data_dir=data_dir,
@@ -114,15 +156,21 @@ def main():
         image_size=image_size
     )
 
-    model = load_model(model_path, device, image_size=image_size)
+    model = load_model(
+        model_type=model_type,
+        model_path=model_path,
+        device=device,
+        image_size=image_size,
+        num_classes=num_classes
+    )
 
     preds, labels, misclassified = get_predictions(model, test_loader, device)
 
     accuracy = compute_accuracy(preds, labels)
-    print(f"Baseline test accuracy: {accuracy:.4f}")
+    print(f"{model_type.upper()} test accuracy: {accuracy:.4f}")
 
-    plot_confusion_matrix(labels, preds)
-    save_misclassified_examples(misclassified)
+    plot_confusion_matrix(labels, preds, model_type=model_type)
+    save_misclassified_examples(misclassified, model_type=model_type)
 
     print("\nSample misclassifications:")
     for item in misclassified[:10]:
@@ -131,4 +179,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-

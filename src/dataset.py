@@ -1,7 +1,7 @@
 import torch
 from torch.utils.data import DataLoader, random_split
 from torchvision import datasets
-from src.preprocess import get_train_transforms, get_eval_transforms
+from preprocess import get_train_transforms, get_eval_transforms
 
 def load_mnist(data_dir="data", image_size=28):
     train_transform = get_train_transforms(image_size)

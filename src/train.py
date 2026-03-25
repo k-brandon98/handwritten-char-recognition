@@ -1,10 +1,11 @@
 import os
+import argparse
 import torch
 import torch.nn as nn
 import torch.optim as optim
 
 from model_baseline import BaselineLogisticRegression
-# from model_baseline import BaselineMLP
+from model_cnn import CharacterCNN
 
 from dataset import get_dataloaders
 
@@ -58,6 +59,21 @@ def evaluate(model, loader, criterion, device):
 
 
 def main():
+
+    # -----------------------------
+    # Command-line argument
+    # -----------------------------
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--model",
+        type=str,
+        default="baseline",
+        choices=["baseline", "cnn"]
+    )
+    args = parser.parse_args()
+
+    model_type = args.model
+
     # -----------------------------
     # Config
     # -----------------------------
@@ -65,17 +81,20 @@ def main():
     learning_rate = 1e-3
     num_epochs = 5
     image_size = 28
+    num_classes = 10
     data_dir = "data"
-    model_save_path = "models/baseline_mnist.pth"
+
+    model_save_path = f"models/{model_type}_model.pth"
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"Using device: {device}")
+    print(f"Training model: {model_type}")
 
     os.makedirs("models", exist_ok=True)
     os.makedirs(data_dir, exist_ok=True)
 
     # -----------------------------
-    # Load dataloaders from external file
+    # Load data
     # -----------------------------
     train_loader, val_loader, test_loader = get_dataloaders(
         data_dir=data_dir,
@@ -84,19 +103,29 @@ def main():
     )
 
     # -----------------------------
-    # Model, loss, optimizer
+    # Choose model
     # -----------------------------
-    model = BaselineLogisticRegression(
-        input_dim=image_size * image_size,
-        num_classes=10
-    ).to(device)
+    if model_type == "baseline":
 
-    # model = BaselineMLP(
-    #     input_dim=image_size * image_size,
-    #     hidden_dim=128,
-    #     num_classes=10
-    # ).to(device)
+        model = BaselineLogisticRegression(
+            input_dim=image_size * image_size,
+            num_classes=num_classes
+        )
 
+    elif model_type == "cnn":
+
+        model = CharacterCNN(
+            num_classes=num_classes
+        )
+
+    else:
+        raise ValueError("Invalid model type")
+
+    model = model.to(device)
+
+    # -----------------------------
+    # Loss + optimizer
+    # -----------------------------
     criterion = nn.CrossEntropyLoss()
     optimizer = optim.Adam(model.parameters(), lr=learning_rate)
 
@@ -106,17 +135,28 @@ def main():
     best_val_acc = 0.0
 
     for epoch in range(num_epochs):
+
         train_loss, train_acc = train_one_epoch(
-            model, train_loader, criterion, optimizer, device
+            model,
+            train_loader,
+            criterion,
+            optimizer,
+            device
         )
+
         val_loss, val_acc = evaluate(
-            model, val_loader, criterion, device
+            model,
+            val_loader,
+            criterion,
+            device
         )
 
         print(
             f"Epoch [{epoch+1}/{num_epochs}] "
-            f"Train Loss: {train_loss:.4f}, Train Acc: {train_acc:.4f} | "
-            f"Val Loss: {val_loss:.4f}, Val Acc: {val_acc:.4f}"
+            f"Train Loss: {train_loss:.4f}, "
+            f"Train Acc: {train_acc:.4f} | "
+            f"Val Loss: {val_loss:.4f}, "
+            f"Val Acc: {val_acc:.4f}"
         )
 
         if val_acc > best_val_acc:
@@ -125,11 +165,23 @@ def main():
             print(f"Saved best model to {model_save_path}")
 
     # -----------------------------
-    # Final test evaluation
+    # Test evaluation
     # -----------------------------
-    model.load_state_dict(torch.load(model_save_path, map_location=device))
-    test_loss, test_acc = evaluate(model, test_loader, criterion, device)
-    print(f"Test Loss: {test_loss:.4f}, Test Acc: {test_acc:.4f}")
+    model.load_state_dict(
+        torch.load(model_save_path, map_location=device)
+    )
+
+    test_loss, test_acc = evaluate(
+        model,
+        test_loader,
+        criterion,
+        device
+    )
+
+    print(
+        f"Test Loss: {test_loss:.4f}, "
+        f"Test Acc: {test_acc:.4f}"
+    )
 
 
 if __name__ == "__main__":

@@ -114,7 +114,6 @@ def plot_preprocessing_comparison(n=5, save_path="outputs/preprocessing_comparis
 
 if __name__ == "__main__":
     from torch.utils.data import DataLoader
-    from src.dataset import get_dataloaders
 
     full_train, test_dataset = load_mnist()
     train_subset, val_subset = create_splits(full_train)

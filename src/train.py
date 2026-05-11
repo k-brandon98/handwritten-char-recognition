@@ -3,10 +3,8 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 
-from model_baseline import BaselineLogisticRegression
-# from model_baseline import BaselineMLP
-
-from dataset import get_dataloaders
+from src.models_cnn import SimpleCNN
+from src.dataset import get_dataloaders
 
 
 def train_one_epoch(model, loader, criterion, optimizer, device):
@@ -61,12 +59,13 @@ def main():
     # -----------------------------
     # Config
     # -----------------------------
+    dataset_name = "emnist"
     batch_size = 64
     learning_rate = 1e-3
     num_epochs = 5
     image_size = 28
     data_dir = "data"
-    model_save_path = "models/baseline_mnist.pth"
+    model_save_path = f"models/cnn_{dataset_name}.pth"
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"Using device: {device}")
@@ -77,25 +76,19 @@ def main():
     # -----------------------------
     # Load dataloaders from external file
     # -----------------------------
-    train_loader, val_loader, test_loader = get_dataloaders(
+    train_loader, val_loader, test_loader, num_classes = get_dataloaders(
+        dataset_name=dataset_name,
         data_dir=data_dir,
         batch_size=batch_size,
         image_size=image_size
     )
 
+    print(f"Training on {dataset_name.upper()} with {num_classes} classes")
+
     # -----------------------------
     # Model, loss, optimizer
     # -----------------------------
-    model = BaselineLogisticRegression(
-        input_dim=image_size * image_size,
-        num_classes=10
-    ).to(device)
-
-    # model = BaselineMLP(
-    #     input_dim=image_size * image_size,
-    #     hidden_dim=128,
-    #     num_classes=10
-    # ).to(device)
+    model = SimpleCNN(num_classes=num_classes).to(device)
 
     criterion = nn.CrossEntropyLoss()
     optimizer = optim.Adam(model.parameters(), lr=learning_rate)

@@ -5,8 +5,8 @@ import torch
 
 from sklearn.metrics import confusion_matrix
 
-from src.dataset import get_dataloaders
-from src.models_cnn import SimpleCNN
+from src.data.dataset import get_dataloaders
+from models.models_cnn import SimpleCNN
 
 # Load the model
 def load_model(model_path, device, num_classes):

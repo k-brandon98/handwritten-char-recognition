@@ -3,8 +3,8 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 
-from src.models_cnn import SimpleCNN
-from src.dataset import get_dataloaders
+from models.models_cnn import SimpleCNN
+from src.data.dataset import get_dataloaders
 
 
 def train_one_epoch(model, loader, criterion, optimizer, device):

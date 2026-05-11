@@ -4,90 +4,90 @@ import numpy as np
 
 
 def load_image(image_path):
-    """
-    Load an image from disk.
-    """
-    image = cv2.imread(image_path)
+  """
+  Load an image from disk.
+  """
+  image = cv2.imread(image_path)
 
-    if image is None:
-        raise FileNotFoundError(f"Could not load image: {image_path}")
+  if image is None:
+    raise FileNotFoundError(f"Could not load image: {image_path}")
 
-    return image
+  return image
 
 
 def preprocess_for_segmentation(image):
-    """
-    Convert image to grayscale and threshold it so handwriting becomes white
-    on a black background.
-    """
-    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+  """
+  Convert image to grayscale and threshold it so handwriting becomes white
+  on a black background.
+  """
+  gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
 
-    # Light blur helps reduce small noise
-    blurred = cv2.GaussianBlur(gray, (5, 5), 0)
+  # Light blur helps reduce small noise
+  blurred = cv2.GaussianBlur(gray, (5, 5), 0)
 
-    # Otsu threshold automatically chooses threshold value
-    _, binary = cv2.threshold(
-        blurred,
-        0,
-        255,
-        cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU
-    )
+  # Otsu threshold automatically chooses threshold value
+  _, binary = cv2.threshold(
+    blurred,
+    0,
+    255,
+    cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU
+  )
 
-    return binary
+  return binary
 
 
 def find_character_boxes(binary_image):
-    """
-    Find bounding boxes around connected handwritten components.
-    """
-    contours, _ = cv2.findContours(
-        binary_image,
-        cv2.RETR_EXTERNAL,
-        cv2.CHAIN_APPROX_SIMPLE
-    )
+  """
+  Find bounding boxes around connected handwritten components.
+  """
+  contours, _ = cv2.findContours(
+    binary_image,
+    cv2.RETR_EXTERNAL,
+    cv2.CHAIN_APPROX_SIMPLE
+  )
 
-    boxes = []
+  boxes = []
 
-    for contour in contours:
-        x, y, w, h = cv2.boundingRect(contour)
-        boxes.append((x, y, w, h))
+  for contour in contours:
+    x, y, w, h = cv2.boundingRect(contour)
+    boxes.append((x, y, w, h))
 
-    return boxes
+  return boxes
 
 
 def filter_boxes(boxes, min_width=5, min_height=10, min_area=30):
-    """
-    Remove tiny boxes that are likely noise.
-    """
-    filtered = []
+  """
+  Remove tiny boxes that are likely noise.
+  """
+  filtered = []
 
-    for x, y, w, h in boxes:
-        area = w * h
+  for x, y, w, h in boxes:
+    area = w * h
 
-        if w >= min_width and h >= min_height and area >= min_area:
-            filtered.append((x, y, w, h))
+    if w >= min_width and h >= min_height and area >= min_area:
+      filtered.append((x, y, w, h))
 
-    return filtered
+  return filtered
 
 
 def sort_boxes_left_to_right(boxes):
-    """
-    Sort detected character boxes from left to right.
-    """
-    return sorted(boxes, key=lambda box: box[0])
+  """
+  Sort detected character boxes from left to right.
+  """
+  return sorted(boxes, key=lambda box: box[0])
 
 
 def crop_characters(binary_image, boxes):
-    """
-    Crop each detected character from the binary image.
-    """
-    crops = []
+  """
+  Crop each detected character from the binary image.
+  """
+  crops = []
 
-    for x, y, w, h in boxes:
-        crop = binary_image[y:y + h, x:x + w]
-        crops.append(crop)
+  for x, y, w, h in boxes:
+    crop = binary_image[y:y + h, x:x + w]
+    crops.append(crop)
 
-    return crops
+  return crops
 
 
 def resize_character_crop(crop, output_size=28, padding=4):

@@ -3,17 +3,14 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import torch
 
-from dataset import get_dataloaders
-from model_baseline import BaselineLogisticRegression
 from sklearn.metrics import confusion_matrix
 
-# Load the model
-def load_model(model_path, device, image_size=28, num_classes=10):
-    model = BaselineLogisticRegression(
-        input_dim=image_size * image_size,
-        num_classes=num_classes
-    ).to(device)
+from src.data.dataset import get_dataloaders
+from models.models_cnn import SimpleCNN
 
+# Load the model
+def load_model(model_path, device, num_classes):
+    model = SimpleCNN(num_classes=num_classes).to(device)
     model.load_state_dict(torch.load(model_path, map_location=device))
     model.eval()
     return model
@@ -54,15 +51,15 @@ def compute_accuracy(preds, labels):
     return correct / len(labels)
 
 # Plot confusion matrix
-def plot_confusion_matrix(labels, preds, save_path="outputs/confusion_matrix.png"):
+def plot_confusion_matrix(labels, preds, dataset_name, save_path="outputs/confusion_matrix.png"):
     os.makedirs("outputs", exist_ok=True)
     cm = confusion_matrix(labels, preds)
 
-    plt.figure(figsize=(8, 6))
-    sns.heatmap(cm, annot=True, fmt="d", cmap="Blues")
+    plt.figure(figsize=(10, 8))
+    sns.heatmap(cm, cmap="Blues")
     plt.xlabel("Predicted label")
     plt.ylabel("True label")
-    plt.title("Baseline Logistic Regression Confusion Matrix")
+    plt.title(f"CNN Confusion Matrix on {dataset_name.upper()}")
     plt.tight_layout()
     plt.savefig(save_path)
     plt.close()
@@ -100,28 +97,32 @@ def get_misclassified(preds, labels):
 
 # main evaluation function
 def main():
+    dataset_name = "emnist"
     batch_size = 64
     image_size = 28
     data_dir = "data"
-    model_path = "models/baseline_mnist.pth"
+    model_path = f"models/cnn_{dataset_name}.pth"
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"Using device: {device}")
 
-    _, _, test_loader = get_dataloaders(
+    _, _, test_loader, num_classes = get_dataloaders(
+        dataset_name=dataset_name,
         data_dir=data_dir,
         batch_size=batch_size,
         image_size=image_size
     )
 
-    model = load_model(model_path, device, image_size=image_size)
+    print(f"Evaluating CNN on {dataset_name.upper()} with {num_classes} classes")
+
+    model = load_model(model_path, device, num_classes=num_classes)
 
     preds, labels, misclassified = get_predictions(model, test_loader, device)
 
     accuracy = compute_accuracy(preds, labels)
-    print(f"Baseline test accuracy: {accuracy:.4f}")
+    print(f"CNN test accuracy on {dataset_name.upper()}: {accuracy:.4f}")
 
-    plot_confusion_matrix(labels, preds)
+    plot_confusion_matrix(labels, preds, dataset_name=dataset_name)
     save_misclassified_examples(misclassified)
 
     print("\nSample misclassifications:")

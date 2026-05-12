@@ -1,7 +1,11 @@
 venv/
 __pycache__/
 *.pyc
-data/
+data/*
+!data/custom_words/
+data/custom_words/*
+!data/custom_words/README.md
+notebooks/data/
 !outputs/.gitkeep
 .DS_Store
 

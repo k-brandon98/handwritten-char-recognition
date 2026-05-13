@@ -1,4 +1,4 @@
-from segmentation.segment import (
+from src.segmentation.segment import (
     segment_word,
     save_segmented_characters,
     draw_bounding_boxes

@@ -6,3 +6,4 @@ jupyter
 scikit-learn
 pillow
 seaborn
+opencv-python

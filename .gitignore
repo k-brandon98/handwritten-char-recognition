@@ -11,4 +11,3 @@ notebooks/data/
 
 
 .DS_Store
-models/*.pth

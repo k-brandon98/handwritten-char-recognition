@@ -15,9 +15,9 @@ Run from the project root with:
 
     python -m src.prediction.predict data/custom_words/cat.jpeg
 
-By default this expects an EMNIST-balanced CNN checkpoint at
-``models/cnn_emnist.pth``. Use ``--dataset mnist`` and ``--model-path`` if you
-are using a different checkpoint.
+By default this expects an EMNIST letters CNN checkpoint at
+``models/cnn_emnist_letters.pth``. Use ``--dataset`` and ``--model-path`` if
+you are using a different checkpoint.
 """
 
 from __future__ import annotations
@@ -36,6 +36,7 @@ from src.segmentation.segment import segment_word
 
 
 MNIST_CLASSES = [str(i) for i in range(10)]
+EMNIST_LETTER_CLASSES = [chr(ord("a") + index) for index in range(26)]
 
 # TorchVision's class order for the EMNIST "balanced" split. The model output
 # index must be mapped through this list before joining predictions into text.
@@ -75,8 +76,8 @@ def get_class_names(dataset_name: str) -> List[str]:
     Return the class labels used by a trained model.
 
     The order of this list must match the order used during training. For this
-    project, training currently targets either MNIST or the EMNIST balanced
-    split.
+    project, training currently targets MNIST, EMNIST balanced, or EMNIST
+    letters.
     """
 
     dataset_name = dataset_name.lower()
@@ -87,8 +88,12 @@ def get_class_names(dataset_name: str) -> List[str]:
     if dataset_name == "emnist":
         return EMNIST_BALANCED_CLASSES
 
+    if dataset_name == "emnist_letters":
+        return EMNIST_LETTER_CLASSES
+
     raise ValueError(
-        f"Unsupported dataset '{dataset_name}'. Expected 'mnist' or 'emnist'."
+        f"Unsupported dataset '{dataset_name}'. Expected 'mnist', 'emnist', "
+        "or 'emnist_letters'."
     )
 
 
@@ -258,8 +263,8 @@ def combine_predictions(predictions: Sequence[CharacterPrediction]) -> str:
 
 def predict_word(
     image_path: str,
-    model_path: str = "models/cnn_emnist.pth",
-    dataset_name: str = "emnist",
+    model_path: str = "models/cnn_emnist_letters.pth",
+    dataset_name: str = "emnist_letters",
     output_size: int = 28,
     device_name: Optional[str] = None,
 ) -> Tuple[str, List[CharacterPrediction]]:
@@ -269,7 +274,8 @@ def predict_word(
     Args:
         image_path: Path to an image containing a handwritten word.
         model_path: Path to a trained CNN checkpoint.
-        dataset_name: Dataset label mapping to use: ``"emnist"`` or ``"mnist"``.
+        dataset_name: Dataset label mapping to use: ``"emnist_letters"``,
+            ``"emnist"``, or ``"mnist"``.
         output_size: Size passed to segmentation. The CNN expects ``28``.
         device_name: Optional device override, such as ``"cpu"`` or ``"cuda"``.
 
@@ -318,13 +324,13 @@ def build_arg_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument(
         "--model-path",
-        default="models/cnn_emnist.pth",
+        default="models/cnn_emnist_letters.pth",
         help="Path to the trained CNN checkpoint.",
     )
     parser.add_argument(
         "--dataset",
-        default="emnist",
-        choices=["mnist", "emnist"],
+        default="emnist_letters",
+        choices=["mnist", "emnist", "emnist_letters"],
         help="Class mapping used by the trained model.",
     )
     parser.add_argument(

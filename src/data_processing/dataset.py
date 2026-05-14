@@ -5,10 +5,15 @@ from src.data_processing.preprocess import get_train_transforms, get_eval_transf
 
 
 def load_dataset(dataset_name="mnist", data_dir="data", image_size=28):
-    train_transform = get_train_transforms(image_size)
-    eval_transform = get_eval_transforms(image_size)
-
     dataset_name = dataset_name.lower()
+    train_transform = get_train_transforms(
+        image_size=image_size,
+        dataset_name=dataset_name
+    )
+    eval_transform = get_eval_transforms(
+        image_size=image_size,
+        dataset_name=dataset_name
+    )
 
     if dataset_name == "mnist":
         full_train_dataset = datasets.MNIST(
@@ -45,6 +50,28 @@ def load_dataset(dataset_name="mnist", data_dir="data", image_size=28):
         )
 
         num_classes = 47
+
+    elif dataset_name == "emnist_letters":
+        target_transform = lambda label: label - 1
+        full_train_dataset = datasets.EMNIST(
+            root=data_dir,
+            split="letters",
+            train=True,
+            download=True,
+            transform=train_transform,
+            target_transform=target_transform
+        )
+
+        test_dataset = datasets.EMNIST(
+            root=data_dir,
+            split="letters",
+            train=False,
+            download=True,
+            transform=eval_transform,
+            target_transform=target_transform
+        )
+
+        num_classes = 26
 
     else:
         raise ValueError(f"Unsupported dataset: {dataset_name}")

@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Handwritten Word Recognition</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+
+<body>
+  <main class="page">
+    <section class="hero">
+      <p class="eyebrow">AI handwriting reader</p>
+      <h1>Handwritten Word Recognition</h1>
+      <p>Write a full word on the wide canvas, or upload an image of handwriting to get a prediction.</p>
+    </section>
+
+    <section class="app-stack">
+      <div class="card draw-card">
+        <div class="card-header">
+          <div>
+            <p class="section-label">Option 1</p>
+            <h2>Draw a Word</h2>
+          </div>
+          <span class="pill">Recommended</span>
+        </div>
+
+        <p class="card-text">Use your mouse, finger, or Apple Pencil. The wider canvas gives you room for a complete word.</p>
+
+        <div class="canvas-wrap">
+          <canvas id="drawCanvas" width="900" height="280"></canvas>
+        </div>
+
+        <div class="button-row">
+          <button class="secondary" onclick="clearCanvas()">Clear Canvas</button>
+          <button onclick="predictDrawing()">Predict Drawing</button>
+        </div>
+      </div>
+
+      <div class="card upload-card">
+        <div class="card-header">
+          <div>
+            <p class="section-label">Option 2</p>
+            <h2>Upload an Image</h2>
+          </div>
+        </div>
+
+        <p class="card-text">Choose a handwritten character or word image from your device.</p>
+
+        <div class="upload-layout">
+          <label class="upload-box" for="imageInput">
+            <span class="upload-icon">+</span>
+            <span>Click to upload image</span>
+            <input type="file" id="imageInput" accept="image/*" />
+          </label>
+
+          <div class="preview-box">
+            <img id="preview" alt="Image preview" />
+            <span class="preview-placeholder">Preview appears here</span>
+          </div>
+        </div>
+
+        <button onclick="predictImage()">Predict Image</button>
+      </div>
+    </section>
+
+    <section class="result-card">
+      <p>Model Output</p>
+      <h2 id="result">Waiting for input...</h2>
+    </section>
+  </main>
+
+  <script src="script.js"></script>
+</body>
+</html>

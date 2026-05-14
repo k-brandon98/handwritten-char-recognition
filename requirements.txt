@@ -7,3 +7,5 @@ scikit-learn
 pillow
 seaborn
 opencv-python
+flask
+flask-cors

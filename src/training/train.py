@@ -3,8 +3,8 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 
-from models.models_cnn import SimpleCNN
-from src.data.dataset import get_dataloaders
+from src.models.models_cnn import SimpleCNN
+from src.data_processing.dataset import get_dataloaders
 
 
 def train_one_epoch(model, loader, criterion, optimizer, device):
@@ -59,7 +59,7 @@ def main():
     # -----------------------------
     # Config
     # -----------------------------
-    dataset_name = "emnist"
+    dataset_name = "emnist_letters"
     batch_size = 64
     learning_rate = 1e-3
     num_epochs = 5

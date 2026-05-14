@@ -8,6 +8,3 @@ data/custom_words/*
 notebooks/data/
 !outputs/.gitkeep
 .DS_Store
-
-
-.DS_Store

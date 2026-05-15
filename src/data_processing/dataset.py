@@ -73,6 +73,25 @@ def load_dataset(dataset_name="mnist", data_dir="data", image_size=28):
 
         num_classes = 26
 
+    elif dataset_name == "emnist_byclass":
+        full_train_dataset = datasets.EMNIST(
+            root=data_dir,
+            split="byclass",
+            train=True,
+            download=True,
+            transform=train_transform
+        )
+
+        test_dataset = datasets.EMNIST(
+            root=data_dir,
+            split="byclass",
+            train=False,
+            download=True,
+            transform=eval_transform
+        )
+
+        num_classes = 62
+
     else:
         raise ValueError(f"Unsupported dataset: {dataset_name}")
 

@@ -51,6 +51,12 @@ class PredictPipelineTests(unittest.TestCase):
         self.assertEqual(emnist_letter_classes[:3], ["a", "b", "c"])
         self.assertEqual(emnist_letter_classes[-3:], ["x", "y", "z"])
 
+        emnist_byclass_classes = get_class_names("emnist_byclass")
+        self.assertEqual(len(emnist_byclass_classes), 62)
+        self.assertEqual(emnist_byclass_classes[:10], [str(i) for i in range(10)])
+        self.assertEqual(emnist_byclass_classes[10:13], ["A", "B", "C"])
+        self.assertEqual(emnist_byclass_classes[-3:], ["x", "y", "z"])
+
     def test_get_class_names_rejects_unknown_dataset(self):
         with self.assertRaises(ValueError):
             get_class_names("unknown")

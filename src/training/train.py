@@ -59,7 +59,7 @@ def main():
     # -----------------------------
     # Config
     # -----------------------------
-    dataset_name = "emnist_letters"
+    dataset_name = "emnist_byclass"
     batch_size = 64
     learning_rate = 1e-3
     num_epochs = 5

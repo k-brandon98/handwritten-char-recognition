@@ -4,22 +4,21 @@ import tempfile
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
-from flask import Flask, request, jsonify
-from flask_cors import CORS
+from flask import Flask, request, jsonify, send_from_directory
 from PIL import Image
 import io
 from src.prediction.predict import predict_word
 
-app = Flask(__name__)
-CORS(
-    app,
-    resources={r"/*": {"origins": ["http://127.0.0.1:5500", "http://localhost:5500"]}},
+app = Flask(
+    __name__,
+    static_folder="../frontend",
+    static_url_path=""
 )
 
 
 @app.route("/")
 def home():
-    return jsonify({"message": "Handwriting recognition backend is running"})
+    return send_from_directory(app.static_folder, "index.html")
 
 
 @app.route("/predict", methods=["POST"])
@@ -35,8 +34,6 @@ def predict():
         try:
             prediction, _ = predict_word(
                 temp_file.name,
-                model_path="models/cnn_emnist.pth",
-                dataset_name="emnist",
             )
         finally:
             os.unlink(temp_file.name)

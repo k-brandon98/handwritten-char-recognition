@@ -1,12 +1,27 @@
 import os
+import string
 import matplotlib.pyplot as plt
 import seaborn as sns
 import torch
 
 from sklearn.metrics import confusion_matrix
 
-from src.data.dataset import get_dataloaders
-from models.models_cnn import SimpleCNN
+from src.data_processing.dataset import get_dataloaders
+from src.models.models_cnn import SimpleCNN
+
+def get_label_map(dataset_name):
+    if dataset_name == "emnist_letters":
+        return {i: chr(ord('A') + i) for i in range(26)}
+
+    elif dataset_name == "mnist":
+        return {i: str(i) for i in range(10)}
+
+    elif dataset_name == "emnist_balanced":
+        chars = list(string.digits + string.ascii_uppercase + string.ascii_lowercase)
+        return {i: chars[i] for i in range(len(chars))}
+
+    else:
+        return None
 
 # Load the model
 def load_model(model_path, device, num_classes):
@@ -51,37 +66,75 @@ def compute_accuracy(preds, labels):
     return correct / len(labels)
 
 # Plot confusion matrix
-def plot_confusion_matrix(labels, preds, dataset_name, save_path="outputs/confusion_matrix.png"):
+def plot_confusion_matrix(
+    labels,
+    preds,
+    dataset_name,
+    save_path="outputs/confusion_matrix.png"
+):
     os.makedirs("outputs", exist_ok=True)
+
     cm = confusion_matrix(labels, preds)
 
-    plt.figure(figsize=(10, 8))
-    sns.heatmap(cm, cmap="Blues")
-    plt.xlabel("Predicted label")
-    plt.ylabel("True label")
+    label_map = get_label_map(dataset_name)
+
+    if label_map:
+        class_names = [label_map[i] for i in range(len(label_map))]
+    else:
+        class_names = [str(i) for i in range(cm.shape[0])]
+
+    plt.figure(figsize=(12, 10))
+
+    sns.heatmap(
+        cm,
+        cmap="Blues",
+        xticklabels=class_names,
+        yticklabels=class_names
+    )
+
+    plt.xlabel("Predicted Character")
+    plt.ylabel("True Character")
     plt.title(f"CNN Confusion Matrix on {dataset_name.upper()}")
+
     plt.tight_layout()
     plt.savefig(save_path)
     plt.close()
 
     print(f"Saved confusion matrix to {save_path}")
 
-def save_misclassified_examples(misclassified, save_path="outputs/misclassified_examples.png", max_examples=9):
+
+# Save misclassified examples
+def save_misclassified_examples(
+    misclassified,
+    dataset_name,
+    save_path="outputs/misclassified_examples.png",
+    max_examples=9
+):
     if not misclassified:
         print("No misclassified examples found.")
         return
 
+    label_map = get_label_map(dataset_name)
+
     os.makedirs("outputs", exist_ok=True)
+
     examples = misclassified[:max_examples]
 
     cols = 3
     rows = (len(examples) + cols - 1) // cols
+
     plt.figure(figsize=(10, 10))
 
     for i, example in enumerate(examples):
         plt.subplot(rows, cols, i + 1)
+
         plt.imshow(example["image"].squeeze(0), cmap="gray")
-        plt.title(f"T:{example['true']} P:{example['pred']}")
+
+        true_label = label_map[example["true"]]
+        pred_label = label_map[example["pred"]]
+
+        plt.title(f"True: {true_label}\nPred: {pred_label}")
+
         plt.axis("off")
 
     plt.tight_layout()
@@ -90,14 +143,10 @@ def save_misclassified_examples(misclassified, save_path="outputs/misclassified_
 
     print(f"Saved misclassified examples to {save_path}")
 
-# Get misclassified examples
-def get_misclassified(preds, labels):
-    mistakes = [(i, p, l) for i, (p, l) in enumerate(zip(preds, labels)) if p != l]
-    return mistakes[:10]  # first 10
 
 # main evaluation function
 def main():
-    dataset_name = "emnist"
+    dataset_name = "emnist_letters"
     batch_size = 64
     image_size = 28
     data_dir = "data"
@@ -123,7 +172,7 @@ def main():
     print(f"CNN test accuracy on {dataset_name.upper()}: {accuracy:.4f}")
 
     plot_confusion_matrix(labels, preds, dataset_name=dataset_name)
-    save_misclassified_examples(misclassified)
+    save_misclassified_examples(misclassified, dataset_name=dataset_name)
 
     print("\nSample misclassifications:")
     for item in misclassified[:10]:

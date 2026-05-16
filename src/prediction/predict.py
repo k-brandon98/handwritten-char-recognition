@@ -32,8 +32,8 @@ import torch
 import torch.nn.functional as F
 
 from src.models.models_cnn import SimpleCNN
+from src.models.model_baseline import BaselineLogisticRegression
 from src.segmentation.segment import segment_word
-
 
 MNIST_CLASSES = [str(i) for i in range(10)]
 EMNIST_LETTER_CLASSES = [chr(ord("a") + index) for index in range(26)]
@@ -46,11 +46,53 @@ EMNIST_BYCLASS_CLASSES = (
 # TorchVision's class order for the EMNIST "balanced" split. The model output
 # index must be mapped through this list before joining predictions into text.
 EMNIST_BALANCED_CLASSES = [
-    "0", "1", "2", "3", "4", "5", "6", "7", "8", "9",
-    "A", "B", "C", "D", "E", "F", "G", "H", "I", "J",
-    "K", "L", "M", "N", "O", "P", "Q", "R", "S", "T",
-    "U", "V", "W", "X", "Y", "Z", "a", "b", "d", "e",
-    "f", "g", "h", "n", "q", "r", "t",
+    "0",
+    "1",
+    "2",
+    "3",
+    "4",
+    "5",
+    "6",
+    "7",
+    "8",
+    "9",
+    "A",
+    "B",
+    "C",
+    "D",
+    "E",
+    "F",
+    "G",
+    "H",
+    "I",
+    "J",
+    "K",
+    "L",
+    "M",
+    "N",
+    "O",
+    "P",
+    "Q",
+    "R",
+    "S",
+    "T",
+    "U",
+    "V",
+    "W",
+    "X",
+    "Y",
+    "Z",
+    "a",
+    "b",
+    "d",
+    "e",
+    "f",
+    "g",
+    "h",
+    "n",
+    "q",
+    "r",
+    "t",
 ]
 
 
@@ -123,9 +165,12 @@ def load_trained_model(
     model_path: str,
     num_classes: int,
     device: torch.device,
-) -> SimpleCNN:
+):
     """
-    Load a trained ``SimpleCNN`` checkpoint for inference.
+    Load a trained model checkpoint for inference.
+
+    Supports both SimpleCNN and BaselineLogisticRegression architectures.
+    The appropriate model is selected based on the checkpoint keys.
 
     Args:
         model_path: Path to a saved PyTorch checkpoint. The training script
@@ -135,21 +180,30 @@ def load_trained_model(
         device: CPU or GPU device where the model should run.
 
     Returns:
-        A ``SimpleCNN`` in evaluation mode.
+        A model in evaluation mode.
     """
 
     if not os.path.exists(model_path):
         raise FileNotFoundError(
             f"Model checkpoint not found: {model_path}. "
-            "Train the CNN first or pass --model-path."
+            "Train the model first or pass --model-path."
         )
 
     checkpoint = torch.load(model_path, map_location=device)
-    state_dict = checkpoint.get("model_state_dict", checkpoint) if isinstance(
-        checkpoint, dict
-    ) else checkpoint
+    state_dict = (
+        checkpoint.get("model_state_dict", checkpoint)
+        if isinstance(checkpoint, dict)
+        else checkpoint
+    )
 
-    model = SimpleCNN(num_classes=num_classes).to(device)
+    # Detect model architecture from checkpoint keys
+    if "linear.weight" in state_dict:
+        # Baseline logistic regression model
+        model = BaselineLogisticRegression(num_classes=num_classes).to(device)
+    else:
+        # SimpleCNN model
+        model = SimpleCNN(num_classes=num_classes).to(device)
+
     model.load_state_dict(state_dict)
     model.eval()
     return model

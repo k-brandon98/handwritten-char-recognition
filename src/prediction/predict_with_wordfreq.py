@@ -1,4 +1,3 @@
-
 # Context-aware handwritten word prediction using Wordfreq
 
 from __future__ import annotations
@@ -15,8 +14,8 @@ import torch.nn.functional as F
 from wordfreq import zipf_frequency
 
 from src.models.models_cnn import SimpleCNN
+from src.models.model_baseline import BaselineLogisticRegression
 from src.segmentation.segment import segment_word
-
 
 MNIST_CLASSES = [str(i) for i in range(10)]
 EMNIST_LETTER_CLASSES = [chr(ord("a") + index) for index in range(26)]
@@ -27,11 +26,53 @@ EMNIST_BYCLASS_CLASSES = (
 )
 
 EMNIST_BALANCED_CLASSES = [
-    "0", "1", "2", "3", "4", "5", "6", "7", "8", "9",
-    "A", "B", "C", "D", "E", "F", "G", "H", "I", "J",
-    "K", "L", "M", "N", "O", "P", "Q", "R", "S", "T",
-    "U", "V", "W", "X", "Y", "Z", "a", "b", "d", "e",
-    "f", "g", "h", "n", "q", "r", "t",
+    "0",
+    "1",
+    "2",
+    "3",
+    "4",
+    "5",
+    "6",
+    "7",
+    "8",
+    "9",
+    "A",
+    "B",
+    "C",
+    "D",
+    "E",
+    "F",
+    "G",
+    "H",
+    "I",
+    "J",
+    "K",
+    "L",
+    "M",
+    "N",
+    "O",
+    "P",
+    "Q",
+    "R",
+    "S",
+    "T",
+    "U",
+    "V",
+    "W",
+    "X",
+    "Y",
+    "Z",
+    "a",
+    "b",
+    "d",
+    "e",
+    "f",
+    "g",
+    "h",
+    "n",
+    "q",
+    "r",
+    "t",
 ]
 
 CONFUSABLES = {
@@ -47,7 +88,7 @@ CONFUSABLES = {
     "2": ["z", "Z"],
     "z": ["2"],
     "Z": ["2"],
-    "U": ["u"]
+    "U": ["u"],
 }
 
 
@@ -90,19 +131,27 @@ def load_trained_model(
     model_path: str,
     num_classes: int,
     device: torch.device,
-) -> SimpleCNN:
+):
 
     if not os.path.exists(model_path):
         raise FileNotFoundError(f"Model checkpoint not found: {model_path}")
 
     checkpoint = torch.load(model_path, map_location=device)
 
-    state_dict = checkpoint.get(
-        "model_state_dict",
-        checkpoint
-    ) if isinstance(checkpoint, dict) else checkpoint
+    state_dict = (
+        checkpoint.get("model_state_dict", checkpoint)
+        if isinstance(checkpoint, dict)
+        else checkpoint
+    )
 
-    model = SimpleCNN(num_classes=num_classes).to(device)
+    # Detect model architecture from checkpoint keys
+    if "linear.weight" in state_dict:
+        # Baseline logistic regression model
+        model = BaselineLogisticRegression(num_classes=num_classes).to(device)
+    else:
+        # SimpleCNN model
+        model = SimpleCNN(num_classes=num_classes).to(device)
+
     model.load_state_dict(state_dict)
     model.eval()
 
@@ -151,11 +200,7 @@ def predict_character_topk(
     for label, score in results:
         dedup[label] = max(score, dedup.get(label, 0))
 
-    sorted_results = sorted(
-        dedup.items(),
-        key=lambda x: x[1],
-        reverse=True
-    )
+    sorted_results = sorted(dedup.items(), key=lambda x: x[1], reverse=True)
 
     return sorted_results[:top_k]
 
@@ -182,8 +227,7 @@ def predict_characters(
 
         label, confidence = alternatives[0]
 
-        class_index = class_names.index(label) \
-            if label in class_names else -1
+        class_index = class_names.index(label) if label in class_names else -1
 
         box = boxes[index] if boxes is not None else None
 
@@ -222,9 +266,7 @@ def combine_predictions_contextual(
     candidate_lists = []
 
     for pred in predictions:
-        candidate_lists.append(
-            [label for label, _ in pred.alternatives[:beam_width]]
-        )
+        candidate_lists.append([label for label, _ in pred.alternatives[:beam_width]])
 
     candidates = itertools.product(*candidate_lists)
 
@@ -261,10 +303,7 @@ def predict_word(
         device=device,
     )
 
-    characters, boxes, _, _ = segment_word(
-        image_path,
-        output_size=output_size
-    )
+    characters, boxes, _, _ = segment_word(image_path, output_size=output_size)
 
     if not characters:
         raise ValueError("No characters detected.")
@@ -288,10 +327,7 @@ def build_arg_parser():
         description="Context-aware handwritten word prediction."
     )
 
-    parser.add_argument(
-        "image_path",
-        help="Path to handwritten word image."
-    )
+    parser.add_argument("image_path", help="Path to handwritten word image.")
 
     parser.add_argument(
         "--model-path",

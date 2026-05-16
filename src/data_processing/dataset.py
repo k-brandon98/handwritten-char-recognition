@@ -128,8 +128,12 @@ def get_dataloaders(dataset_name="mnist", data_dir="data", batch_size=64, image_
     return train_loader, val_loader, test_loader, num_classes
 
 
-def print_dataset_info(dataset_name="mnist"):
-    full_train_dataset, test_dataset, num_classes = load_dataset(dataset_name=dataset_name)
+def print_dataset_info(dataset_name="mnist", data_dir="data", image_size=28):
+    full_train_dataset, test_dataset, num_classes = load_dataset(
+        dataset_name=dataset_name,
+        data_dir=data_dir,
+        image_size=image_size
+    )
     sample_image, sample_label = full_train_dataset[0]
 
     print("Dataset:", dataset_name.upper())

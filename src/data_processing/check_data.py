@@ -1,7 +1,7 @@
 import os
 import matplotlib.pyplot as plt
 from torchvision import datasets, transforms
-from src.data_processing.dataset import load_mnist, create_splits
+from src.data_processing.dataset import load_dataset, create_splits
 
 MNIST_CLASSES = list(range(10))
 
@@ -12,8 +12,8 @@ def _get_labels(dataset):
     return dataset.targets.tolist()
 
 
-def show_samples(save_path="outputs/sample_mnist.png"):
-    train_dataset, _ = load_mnist()
+def show_samples(data_dir="data", save_path="outputs/sample_mnist.png"):
+    train_dataset, _, _ = load_dataset(dataset_name="mnist", data_dir=data_dir)
     os.makedirs(os.path.dirname(save_path), exist_ok=True)
 
     fig, axes = plt.subplots(3, 3, figsize=(6, 6))
@@ -79,10 +79,10 @@ def plot_label_distribution(train_subset, val_subset, test_dataset,
     plt.show()
 
 
-def plot_preprocessing_comparison(n=5, save_path="outputs/preprocessing_comparison.png"):
-    raw_dataset = datasets.MNIST(root="data", train=True, download=True,
+def plot_preprocessing_comparison(n=5, data_dir="data", save_path="outputs/preprocessing_comparison.png"):
+    raw_dataset = datasets.MNIST(root=data_dir, train=True, download=True,
                                  transform=transforms.ToTensor())
-    norm_dataset = datasets.MNIST(root="data", train=True, download=True,
+    norm_dataset = datasets.MNIST(root=data_dir, train=True, download=True,
                                   transform=transforms.Compose([
                                       transforms.ToTensor(),
                                       transforms.Normalize((0.5,), (0.5,))
@@ -115,7 +115,7 @@ def plot_preprocessing_comparison(n=5, save_path="outputs/preprocessing_comparis
 if __name__ == "__main__":
     from torch.utils.data import DataLoader
 
-    full_train, test_dataset = load_mnist()
+    full_train, test_dataset, _ = load_dataset(dataset_name="mnist")
     train_subset, val_subset = create_splits(full_train)
     train_loader = DataLoader(train_subset, batch_size=64, shuffle=True)
 

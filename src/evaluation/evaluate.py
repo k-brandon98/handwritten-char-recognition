@@ -1,5 +1,7 @@
 import os
+
 import string
+import argparse
 import matplotlib.pyplot as plt
 import seaborn as sns
 import torch
@@ -8,6 +10,7 @@ from sklearn.metrics import confusion_matrix
 
 from src.data_processing.dataset import get_dataloaders
 from src.models.models_cnn import SimpleCNN
+from src.prediction.predict import get_class_names
 
 def get_label_map(dataset_name):
     if dataset_name == "emnist_letters":
@@ -26,11 +29,16 @@ def get_label_map(dataset_name):
 
     else:
         return None
+      
 
 # Load the model
 def load_model(model_path, device, num_classes):
     model = SimpleCNN(num_classes=num_classes).to(device)
-    model.load_state_dict(torch.load(model_path, map_location=device))
+    checkpoint = torch.load(model_path, map_location=device)
+    state_dict = checkpoint.get("model_state_dict", checkpoint) if isinstance(
+        checkpoint, dict
+    ) else checkpoint
+    model.load_state_dict(state_dict)
     model.eval()
     return model
 
@@ -68,6 +76,12 @@ def get_predictions(model, loader, device):
 def compute_accuracy(preds, labels):
     correct = sum(int(p == y) for p, y in zip(preds, labels))
     return correct / len(labels)
+
+def format_label(class_index, class_names):
+    if 0 <= class_index < len(class_names):
+        return class_names[class_index]
+    return str(class_index)
+
 
 # Plot confusion matrix
 def plot_confusion_matrix(
@@ -130,6 +144,10 @@ def save_misclassified_examples(
     plt.figure(figsize=(10, 10))
 
     for i, example in enumerate(examples):
+        image = example["image"].squeeze(0) * 0.5 + 0.5
+        true_label = format_label(example["true"], class_names)
+        pred_label = format_label(example["pred"], class_names)
+
         plt.subplot(rows, cols, i + 1)
 
         plt.imshow(example["image"].squeeze(0), cmap="gray")
@@ -148,6 +166,26 @@ def save_misclassified_examples(
     print(f"Saved misclassified examples to {save_path}")
 
 
+
+def parse_args():
+    parser = argparse.ArgumentParser(description="Evaluate a trained CNN checkpoint.")
+    parser.add_argument(
+        "--dataset",
+        default="emnist_byclass",
+        choices=["mnist", "emnist", "emnist_letters", "emnist_byclass"],
+        help="Dataset split the checkpoint was trained on.",
+    )
+    parser.add_argument("--batch-size", type=int, default=64)
+    parser.add_argument("--image-size", type=int, default=28)
+    parser.add_argument("--data-dir", default="data")
+    parser.add_argument(
+        "--model-path",
+        default=None,
+        help="Checkpoint path. Defaults to models/cnn_<dataset>.pth.",
+    )
+    parser.add_argument("--output-dir", default="outputs")
+    return parser.parse_args()
+
 # main evaluation function
 def main():
     dataset_name = "emnist_byclass"
@@ -161,14 +199,16 @@ def main():
 
     _, _, test_loader, num_classes = get_dataloaders(
         dataset_name=dataset_name,
-        data_dir=data_dir,
-        batch_size=batch_size,
-        image_size=image_size
+        data_dir=args.data_dir,
+        batch_size=args.batch_size,
+        image_size=args.image_size
     )
 
     print(f"Evaluating CNN on {dataset_name.upper()} with {num_classes} classes")
+    print(f"Model checkpoint: {model_path}")
 
     model = load_model(model_path, device, num_classes=num_classes)
+    class_names = get_class_names(dataset_name)
 
     preds, labels, misclassified = get_predictions(model, test_loader, device)
 
@@ -180,9 +220,10 @@ def main():
 
     print("\nSample misclassifications:")
     for item in misclassified[:10]:
-        print(f"Index {item['index']}: true={item['true']}, pred={item['pred']}")
+        true_label = format_label(item["true"], class_names)
+        pred_label = format_label(item["pred"], class_names)
+        print(f"Index {item['index']}: true={true_label}, pred={pred_label}")
 
 
 if __name__ == "__main__":
     main()
-

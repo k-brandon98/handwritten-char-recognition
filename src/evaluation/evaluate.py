@@ -20,6 +20,10 @@ def get_label_map(dataset_name):
         chars = list(string.digits + string.ascii_uppercase + string.ascii_lowercase)
         return {i: chars[i] for i in range(len(chars))}
 
+    elif dataset_name == "emnist_byclass":
+        chars = list(string.digits + string.ascii_uppercase + string.ascii_lowercase)
+        return {i: chars[i] for i in range(len(chars))}
+
     else:
         return None
 
@@ -146,7 +150,7 @@ def save_misclassified_examples(
 
 # main evaluation function
 def main():
-    dataset_name = "emnist_letters"
+    dataset_name = "emnist_byclass"
     batch_size = 64
     image_size = 28
     data_dir = "data"

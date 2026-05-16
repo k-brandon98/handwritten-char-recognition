@@ -15,6 +15,24 @@
       <p>Write a full word on the wide canvas, or upload an image of handwriting to get a prediction.</p>
     </section>
 
+    <section class="settings-card">
+      <p class="section-label">Settings</p>
+      <div class="settings-grid">
+        <div class="setting-item">
+          <label for="useContext">Use Context (Wordfreq):</label>
+          <input type="checkbox" id="useContext" checked />
+        </div>
+        <div class="setting-item">
+          <label for="datasetSelect">Dataset:</label>
+          <select id="datasetSelect">
+            <option value="emnist_byclass">EMNIST ByClass</option>
+            <option value="emnist_letters">EMNIST Letters</option>
+            <option value="mnist">MNIST (Digits)</option>
+          </select>
+        </div>
+      </div>
+    </section>
+
     <section class="app-stack">
       <div class="card draw-card">
         <div class="card-header">
